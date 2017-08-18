@@ -3,13 +3,13 @@
 """
 # 启动时即加载所有配置信息
 # 解析《开放式基金业务数据交换协议》相关的文件时，只以规定的GB18030编码解析，其它类型的数据文件若用GB18030编码解析失败，会再尝试以UTF-8解析
-TODO
 # 异常提示以对话框弹出告知
+TODO
 # 可编辑并保存为新文件
-# 可导出为Excel文件
+# ~~ 可导出为Excel文件 ~~
 @author         Lex Li
 @version        1.0
-@description    使用PyQt5的uic直接加载并解析UI文件参考 http://blog.csdn.net/chlk118/article/details/72595325
+@description
 """
 
 
@@ -85,36 +85,34 @@ class AppWindow(QMainWindow):
         # e.g. {'01':[[4,'Address','C',120,'通讯地址'],[...],...], '02':[[4,'Address','C',120,'通讯地址'],[...],...], ...}
         self.ofd_config_map = {}
 
-        # 配置信息，以文件类型编号为key，值为参数列表
-        self.config_dict = {}
-
         self.exchange_info_header = {}
         self.exchange_info_fields = []
         self.exchange_info_content = []
         self.exchange_info_content_2dimension_tuple = ()  # 二维元组，保存解析后的数据
+        self.exchange_info_content_modified = ()  # 修改后的数据，用于导出
+
+        self.about_message_box = None
+        self.row_content_dialog = None
+        self.help_message_box = None
 
         try:
             self.load_config()
             log.info('配置文件加载完毕')
 
-            self.about_message_box = None
-            self.row_content_dialog = None
-            self.help_message_box = None
-
             # 使用PyQt5的uic来加载并解析UI文件
             uic.loadUi(resource_path('finance_business_exchange_file_viewer.ui'), self)
+
+            self.adjust_layout()
 
             # 支持拖拽操作
             self.setAcceptDrops(True)  # tab_open_fund_data
             # self.dragEnterEvent(True)
             # self.tab_open_fund_data.dropped.connect(self.handle_drop_action)
 
+            self.handle_ui_action()
+
             # 禁用尚未开发完成的功能
             self.disable_in_developing_functions()
-
-            self.adjust_layout()
-
-            self.handle_ui_action()
         except Exception as e:
             # error_msg = '程序内部错误，请检查运行日志！'
             error_msg = '程序内部错误，请检查运行日志！errorMsg=%s' % e
@@ -162,8 +160,6 @@ class AppWindow(QMainWindow):
         self.load_ofd_file_definition('config/OFD_0901_20161014.ini')
         # log.info('加载OFI索引文件结构定义')
         # self.load_index_file_construction_definition('exchange_index_file_definition_rule.ini')
-
-        #     self.config_dict['FILE_' + file_flag_type] = self.load_data_file_content_definition(file_flag_type)
 
     def load_ofd_file_definition(self, file_path):
         log.info('OFD配置文件路径: %s' % file_path)

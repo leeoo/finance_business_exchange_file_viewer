@@ -2,7 +2,6 @@
 App to view some kinds of finance business exchange files.
 
 
-
 目标
 ==============
 
@@ -17,7 +16,6 @@ App to view some kinds of finance business exchange files.
 - 参见 OFD_0901_20161014.ini
 
 
-
 打包App
 ==============
 ## 打包过程中输出包含DEBUG级别的详细日志
@@ -28,4 +26,8 @@ pyinstaller -D --windowed --noconfirm --clean --add-data="finance_business_excha
 
 ## 有问题先检查*.spec文件
 
+
+已知问题
+==============
+- app由PyInstaller打包后在Mac上含有中文字符的路径下无法运行
 
