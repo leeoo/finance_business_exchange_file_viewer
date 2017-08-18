@@ -119,31 +119,12 @@ class AppWindow(QMainWindow):
             log.error(error_msg + '异常信息：%s' % e)
             self.popup_error_msg_box(error_msg)
 
-    def disable_in_developing_functions(self):
-        self.button_export.setDisabled(True)
-        self.checkBox_remove_blank.setDisabled(True)
-        self.lineEdit_search_monetary.setDisabled(True)
-        self.button_search_monetary.setDisabled(True)
-        self.checkBox_remove_blank_monetary.setDisabled(True)
-        self.button_restore_monetary.setDisabled(True)
-        self.button_export_monetary.setDisabled(True)
-        self.tab_ysstech_data.setDisabled(True)
-
-    def handle_drop_action(self):
-        print('Drop action emit!!!!!!!')
-
-    def dragEnterEvent(self, dragEnterEvent):
-        if dragEnterEvent.mimeData().hasUrls():
-            dragEnterEvent.accept()
-        else:
-            dragEnterEvent.ignore()
-
-    def dropEvent(self, dropEvent):
-        for url in dropEvent.mimeData().urls():
-            path = url.toLocalFile()
-            if os.path.isfile(path) and path.endswith(('.txt', '.TXT')):
-                print(path)
-                self.show_open_fund_biz_data(path)
+    def load_config(self):
+        log.info('加载OFD数据文件结构定义')
+        # self.load_data_file_construction_definition('data_exchange_file_definition_rule.ini')
+        self.load_ofd_file_definition('config/OFD_0901_20161014.ini')
+        # log.info('加载OFI索引文件结构定义')
+        # self.load_index_file_construction_definition('exchange_index_file_definition_rule.ini')
 
     # 调整UI布局中控件间距
     def adjust_layout(self):
@@ -154,12 +135,27 @@ class AppWindow(QMainWindow):
         self.gridLayout_3.setVerticalSpacing(0)
         self.gridLayout_3.setHorizontalSpacing(5)
 
-    def load_config(self):
-        log.info('加载OFD数据文件结构定义')
-        # self.load_data_file_construction_definition('data_exchange_file_definition_rule.ini')
-        self.load_ofd_file_definition('config/OFD_0901_20161014.ini')
-        # log.info('加载OFI索引文件结构定义')
-        # self.load_index_file_construction_definition('exchange_index_file_definition_rule.ini')
+    def handle_ui_action(self):
+        # 打开开放式基金业务数据交换文件
+        self.button_browse_file.clicked.connect(self.browse_open_fund_business_data_exchange_file)
+        # 点击表头按当前列排序（直接使用TableWidget内置方法）
+        self.tableWidget.horizontalHeader().sectionClicked['int'].connect(self.tableWidget.sortByColumn)
+        # 点击左侧行头将该行数据展示在弹出框中，以key-value形式显示
+        # self.tableWidget.verticalHeader().sectionClicked['int'].connect(self.show_table_row_content)
+        # 搜索
+        self.button_search.clicked.connect(self.search_open_fund_data)
+        # 恢复（针对于搜索或排序后，恢复到未执行操作的初始解析状态）
+        self.button_restore.clicked.connect(self.restore_content_data)
+
+        # 打开货币基金T+0对账文件
+        self.button_browse_monetary_fund_t0_file.clicked.connect(self.browse_monetary_fund_t0_file)
+        self.tableWidget_moneytary_fund_t0.horizontalHeader().sectionClicked['int'].connect(self.tableWidget_moneytary_fund_t0.sortByColumn)
+
+        # TODO 打开赢时胜金手指文件
+        # self.button_browse_gold_finger_file.clicked.connect(self.browse_gold_finger_file)
+
+        self.actionAbout.triggered.connect(self.show_about_info)
+        self.actionContent.triggered.connect(self.show_help_info)
 
     def load_ofd_file_definition(self, file_path):
         log.info('OFD配置文件路径: %s' % file_path)
@@ -197,28 +193,6 @@ class AppWindow(QMainWindow):
     def popup_error_msg_box(self, error_msg):
         error_msg_box = QMessageBox(self)
         error_msg_box.critical(self, '错误提示', error_msg)
-
-    def handle_ui_action(self):
-        # 打开开放式基金业务数据交换文件
-        self.button_browse_file.clicked.connect(self.browse_open_fund_business_data_exchange_file)
-        # 点击表头按当前列排序（直接使用TableWidget内置方法）
-        self.tableWidget.horizontalHeader().sectionClicked['int'].connect(self.tableWidget.sortByColumn)
-        # 点击左侧行头将该行数据展示在弹出框中，以key-value形式显示
-        # self.tableWidget.verticalHeader().sectionClicked['int'].connect(self.show_table_row_content)
-        # 搜索
-        self.button_search.clicked.connect(self.search_open_fund_data)
-        # 恢复（针对于搜索或排序后，恢复到未执行操作的初始解析状态）
-        self.button_restore.clicked.connect(self.restore_content_data)
-
-        # 打开货币基金T+0对账文件
-        self.button_browse_monetary_fund_t0_file.clicked.connect(self.browse_monetary_fund_t0_file)
-        self.tableWidget_moneytary_fund_t0.horizontalHeader().sectionClicked['int'].connect(self.tableWidget_moneytary_fund_t0.sortByColumn)
-
-        # TODO 打开赢时胜金手指文件
-        # self.button_browse_gold_finger_file.clicked.connect(self.browse_gold_finger_file)
-
-        self.actionAbout.triggered.connect(self.show_about_info)
-        self.actionContent.triggered.connect(self.show_help_info)
 
     def restore_content_data(self):
         if len(self.exchange_info_content_2dimension_tuple) == 0:
@@ -609,6 +583,32 @@ class AppWindow(QMainWindow):
             else:  # 含有小数，必须显示小数部分
                 fixed_record_value = str(tmp)
         return fixed_record_value
+
+    def disable_in_developing_functions(self):
+        self.button_export.setDisabled(True)
+        self.checkBox_remove_blank.setDisabled(True)
+        self.lineEdit_search_monetary.setDisabled(True)
+        self.button_search_monetary.setDisabled(True)
+        self.checkBox_remove_blank_monetary.setDisabled(True)
+        self.button_restore_monetary.setDisabled(True)
+        self.button_export_monetary.setDisabled(True)
+        self.tab_ysstech_data.setDisabled(True)
+
+    def handle_drop_action(self):
+        print('Drop action emit!!!!!!!')
+
+    def dragEnterEvent(self, dragEnterEvent):
+        if dragEnterEvent.mimeData().hasUrls():
+            dragEnterEvent.accept()
+        else:
+            dragEnterEvent.ignore()
+
+    def dropEvent(self, dropEvent):
+        for url in dropEvent.mimeData().urls():
+            path = url.toLocalFile()
+            if os.path.isfile(path) and path.endswith(('.txt', '.TXT')):
+                print(path)
+                self.show_open_fund_biz_data(path)
 
 
 def main():
