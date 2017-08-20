@@ -32,6 +32,7 @@ INFO_CONTENT_ENCODING = 'GB18030'
 UTF_8_ENCODING = 'UTF-8'
 OFD_FIELD_ID_INDEX, OFD_FIELD_NAME_INDEX, OFD_FIELD_TYPE_INDEX, OFD_FIELD_LENGTH_INDEX, \
     OFD_FIELD_DESCRIPTION_INDEX, OFD_FIELD_COMMENTS_INDEX, OFD_FIELD_REQUIRED_INDEX = 0, 1, 2, 3, 4, 5, 6
+__NO_OF_REAL_ROW_NO_COLUMN__ = 0  # 真实行号所在的列
 
 
 # Define function to import external files when using PyInstaller.
@@ -146,6 +147,11 @@ class AppWindow(QMainWindow):
         self.button_search.clicked.connect(self.search_open_fund_data)
         # 恢复（针对于搜索或排序后，恢复到未执行操作的初始解析状态）
         self.button_restore.clicked.connect(self.restore_content_data)
+        # TODO 导出
+        self.button_export.clicked.connect(self.export_open_fund_data)
+
+        # TODO 存放编辑的数据
+        self.tableWidget.model().dataChanged.connect(self.update_content_to_export)
 
         # 打开货币基金T+0对账文件
         self.button_browse_monetary_fund_t0_file.clicked.connect(self.browse_monetary_fund_t0_file)
@@ -156,6 +162,19 @@ class AppWindow(QMainWindow):
 
         self.actionAbout.triggered.connect(self.show_about_info)
         self.actionContent.triggered.connect(self.show_help_info)
+
+    def update_content_to_export(self, top_left, bottom_right):
+        _table_item_changed = self.tableWidget.item(top_left.row(), top_left.column())
+        _real_row_no_item = self.tableWidget.item(top_left.row(), __NO_OF_REAL_ROW_NO_COLUMN__)
+        print("更新表格内容, real_row=%s, row=%s, column=%s" % (_real_row_no_item.text(), top_left.row(), top_left.column()))
+        print("_table_item_changed -> %s" % _table_item_changed.text())
+        _real_row_no = int(_real_row_no_item.text())
+        # 更新数据列表
+        self.exchange_info_content_modified[_real_row_no][top_left.column()] = _table_item_changed.text()
+
+    def export_open_fund_data(self):
+        # TODO 根据更新后的数据列表，导出文件，文件名扩展名前添加 'yyyyMMddHHmmss_exported' 字样
+        pass
 
     def load_ofd_file_definition(self, file_path):
         log.info('OFD配置文件路径: %s' % file_path)
@@ -207,6 +226,8 @@ class AppWindow(QMainWindow):
             for column_no, item in enumerate(row):
                 table_item = QTableWidgetItem(item)
                 self.tableWidget.setItem(row_no, column_no, table_item)
+                if column_no == __NO_OF_REAL_ROW_NO_COLUMN__:
+                    table_item.setFlags(Qt.NoItemFlags)
 
         # 清空状态条信息
         self.statusbar.clearMessage()
@@ -224,10 +245,13 @@ class AppWindow(QMainWindow):
 
         row_no_for_search_result = 0
         row_count_for_search_result = 0
-        for row_no, row in enumerate(self.exchange_info_content_2dimension_tuple):
+        for row_no, row in enumerate(self.exchange_info_content_modified):
             found = False
             # 第一个循环是找出该行是否有匹配到查询关键字
             for column_no, item in enumerate(row):
+                # 由于首列（隐藏或禁止编辑）是存放的真实行号，故搜索时应排除该列！
+                if column_no == __NO_OF_REAL_ROW_NO_COLUMN__:
+                    continue
                 if _search_key in item:
                     found = True
                     break
@@ -245,6 +269,8 @@ class AppWindow(QMainWindow):
             for column_no, item in enumerate(row):
                 table_item = QTableWidgetItem(item)
                 self.tableWidget.setItem(row_no_for_search_result, column_no, table_item)
+                if column_no == __NO_OF_REAL_ROW_NO_COLUMN__:
+                    table_item.setFlags(Qt.NoItemFlags)
 
             row_no_for_search_result += 1
 
@@ -358,6 +384,9 @@ class AppWindow(QMainWindow):
             return
         self.show_open_fund_biz_data(_filename)
 
+        # 清空状态条信息
+        self.statusbar.clearMessage()
+
     def show_open_fund_biz_data(self, _filename):
         self.lineEdit_interface_file_path.setText(_filename)
         # ----------- 读取 -----------
@@ -452,6 +481,9 @@ class AppWindow(QMainWindow):
         self.exchange_info_fields = info_header_middle_section_field_list
         self.exchange_info_content = info_content_record_list
 
+        # 补上手工添加的首列——真实行号
+        self.exchange_info_fields.insert(0, '#真实行号')
+
         _file_flag_type_key = self.exchange_info_header[INFO_HEADER_PRE_SECTION_LIST[6]]
         if _file_flag_type_key in self.ofd_config_map.keys():
             log.info('找到当前key=%s的配置信息' % _file_flag_type_key)
@@ -460,15 +492,21 @@ class AppWindow(QMainWindow):
             return
 
         exchange_info_content_2dimension_list = []
+        exchange_info_content_2dimension_list_mutable = []
         # 将数据解析成二维元组，供后续搜索功能使用
         field_len_list, field_len_precision_list = self.get_field_len_list(_file_flag_type_key)
         for row_no in range(len(self.exchange_info_content)):
             record = self.exchange_info_content[row_no]
-            field_values = self.parse_recod(field_len_list, field_len_precision_list, record)
+            field_values = self.parse_record(field_len_list, field_len_precision_list, record)
+            # 添加行号到头部，用于标识当前行位于文件中的真实行号，但展示列表时将该列隐藏
+            field_values.insert(0, str(row_no))
             exchange_info_content_2dimension_list.append(tuple(field_values))
+            exchange_info_content_2dimension_list_mutable.append(field_values)
 
         self.exchange_info_content_2dimension_tuple = tuple(exchange_info_content_2dimension_list)
         # log.info('数据二维元组exchange_info_content_2dimension_tuple：%s' % self.exchange_info_content_2dimension_tuple)
+        # 复制一份数据列表，供后续更改导出用
+        self.exchange_info_content_modified = exchange_info_content_2dimension_list_mutable.copy()
 
         # ----------- 展示 -----------
         # 展示头部信息
@@ -495,6 +533,7 @@ class AppWindow(QMainWindow):
         self.tableWidget.clearContents()
         self.tableWidget.setAlternatingRowColors(True)  # 设置隔行变色
         self.tableWidget.setColumnCount(len(self.exchange_info_fields))
+        # self.tableWidget.hideColumn(0)  # 隐藏首列
 
         # TODO 获得当前文件定义的表头
         header_labels = []
@@ -502,14 +541,19 @@ class AppWindow(QMainWindow):
             field_description = field_info_as_list[OFD_FIELD_DESCRIPTION_INDEX]
             header_labels.append(field_description)
 
+        # 补上手工添加的首列——真实行号
+        header_labels.insert(0, '#真实行号')
+
         self.tableWidget.setHorizontalHeaderLabels(header_labels)
         self.tableWidget.setRowCount(len(self.exchange_info_content))
-        field_len_list, field_len_precision_list = self.get_field_len_list(_config_key)
+        # field_len_list, field_len_precision_list = self.get_field_len_list(_config_key)
         log.info('配置文件key -> %s' % _config_key)
-        for row_no in range(len(self.exchange_info_content)):
-            record = self.exchange_info_content[row_no]
-            record_values = self.parse_recod(field_len_list, field_len_precision_list, record)
-            self.render_table_row(self.tableWidget, record_values, row_no)
+        for row_no, row in enumerate(self.exchange_info_content_2dimension_tuple):
+            for column_no, item in enumerate(row):
+                table_item = QTableWidgetItem(item)
+                self.tableWidget.setItem(row_no, column_no, table_item)
+                if column_no == __NO_OF_REAL_ROW_NO_COLUMN__:
+                    table_item.setFlags(Qt.NoItemFlags)
         # 为了确保表格显示美观不拥挤，在表格表头和内容均填充完后重新设置列宽度为内容宽度
         self.tableWidget.resizeColumnsToContents()
 
@@ -541,13 +585,13 @@ class AppWindow(QMainWindow):
         self.comboBox_interface_version.addItems([self.tr(self.exchange_info_header[info_header_pre_section_list[1]])])
         self.lineEdit_file_type.setText(_file_type)
 
-    def parse_recod(self, field_len_list, field_len_precision_list, record):
+    def parse_record(self, field_len_list, field_len_precision_list, record):
         """
         根据配置信息按固定长度解析内容，包含小数精度的数值将被解析成实际有意义的数字
         :param field_len_list: 字段长度
         :param field_len_precision_list: 字段数值精度（仅当字段为数值类型时才有效）
         :param record: 
-        :return: 
+        :return: 单行内容解析后得到的字段值列表
         """
         _start = 0
         _end = 0
