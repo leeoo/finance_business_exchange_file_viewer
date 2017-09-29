@@ -24,7 +24,7 @@ from PyQt5 import uic
 # from finance_business_exchange_file_viewer_ui import Ui_MainWindow
 
 
-__VERSION__ = '0.5'
+__VERSION__ = '0.5.1'
 INFO_HEADER_PRE_SECTION_LIST = ['文件标识', '文件版本', '文件创建人', '文件接收人', '日期',
                                 '汇总表号', '文件类型码', '发送人', '接收人', '字段数']
 # 常量声明
