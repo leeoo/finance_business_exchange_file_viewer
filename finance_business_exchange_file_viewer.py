@@ -35,17 +35,7 @@ OFD_FIELD_ID_INDEX, OFD_FIELD_NAME_INDEX, OFD_FIELD_TYPE_INDEX, OFD_FIELD_LENGTH
 __NO_OF_REAL_ROW_NO_COLUMN__ = 0  # 真实行号所在的列
 
 
-# Define function to import external files when using PyInstaller.
-# def resource_path(relative_path):
-#     try:
-#         base_path = sys._MEIPASS
-#     except Exception:
-#         base_path = os.path.abspath('.')
-#
-#     print('base_path -> %s, relative_path -> %s' % (base_path, relative_path))
-#     full_path = os.path.join(base_path, relative_path)
-#     print('full_path -> %s' % full_path)
-#     return full_path
+# Special function to import external files when using PyInstaller.
 def resource_path(relative_path):
     if hasattr(sys, "_MEIPASS"):
         base_path = sys._MEIPASS
@@ -64,7 +54,7 @@ def resource_path(relative_path):
 #     basedir = sys._MEIPASS
 # else:
 #     basedir = os.path.dirname(__file__)
-
+#
 # logging.config.fileConfig(os.path.join(basedir, 'config/logging.ini'))
 # logging.config.fileConfig(resource_path('config/logging.ini'))
 # log = logging.getLogger()
@@ -89,8 +79,14 @@ class AppWindow(QMainWindow):
         self.exchange_info_header = {}
         self.exchange_info_fields = []
         self.exchange_info_content = []
+
+        # 用于保存中登标准交换文件解析后的数据，以便用于搜索及导出
         self.exchange_info_content_2dimension_tuple = ()  # 二维元组，保存解析后的数据
         self.exchange_info_content_modified = ()  # 修改后的数据，用于导出
+
+        # 用于保存货基T+0文件解析后的数据，以便用于搜索及导出
+        self.mft0_content_2dimension_tuple = ()  # 二维元组，保存解析后的数据
+        self.mft0_content_modified = ()  # 修改后的数据，用于导出
 
         self.about_message_box = None
         self.row_content_dialog = None
@@ -353,8 +349,8 @@ class AppWindow(QMainWindow):
             self.tableWidget_moneytary_fund_t0.setHorizontalHeaderLabels(_header_columns)
             self.tableWidget_moneytary_fund_t0.setRowCount(len(_content_lines))
 
-            for row_no in range(len(_content_lines)):
-                param_values = _content_lines[row_no].split('|')
+            for row_no, row in enumerate(_content_lines):
+                param_values = row.split('|')
                 self.render_table_row(self.tableWidget_moneytary_fund_t0, param_values, row_no)
             # 为了确保表格显示美观不拥挤，在表格表头和内容均填充完后重新设置列宽度为内容宽度
             self.tableWidget_moneytary_fund_t0.resizeColumnsToContents()
