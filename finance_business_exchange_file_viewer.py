@@ -166,8 +166,8 @@ class AppWindow(QMainWindow):
     def update_content_to_export(self, top_left, bottom_right):
         _table_item_changed = self.tableWidget.item(top_left.row(), top_left.column())
         _real_row_no_item = self.tableWidget.item(top_left.row(), __NO_OF_REAL_ROW_NO_COLUMN__)
-        print("更新表格内容, real_row=%s, row=%s, column=%s" % (_real_row_no_item.text(), top_left.row(), top_left.column()))
-        print("_table_item_changed -> %s" % _table_item_changed.text())
+        log.info("更新表格内容, real_row=%s, row=%s, column=%s" % (_real_row_no_item.text(), top_left.row(), top_left.column()))
+        log.info("_table_item_changed -> %s" % _table_item_changed.text())
         _real_row_no = int(_real_row_no_item.text())
         # 更新数据列表
         self.exchange_info_content_modified[_real_row_no][top_left.column()] = _table_item_changed.text()
@@ -236,7 +236,7 @@ class AppWindow(QMainWindow):
     # 找到与否均弹出提示对话框，或者在界面搜索按钮右侧、左下角或右下角显示！
     def search_open_fund_data(self):
         _search_key = self.lineEdit_search.text()
-        print('Search key=%s' % _search_key)
+        log.info('Search key=%s' % _search_key)
 
         # 查询时初始化清空表格内容和状态条
         self.tableWidget.clearContents()
@@ -639,7 +639,7 @@ class AppWindow(QMainWindow):
         self.tab_ysstech_data.setDisabled(True)
 
     def handle_drop_action(self):
-        print('Drop action emit!!!!!!!')
+        log.info('Drop action emit!!!!!!!')
 
     def dragEnterEvent(self, dragEnterEvent):
         if dragEnterEvent.mimeData().hasUrls():
@@ -651,7 +651,7 @@ class AppWindow(QMainWindow):
         for url in dropEvent.mimeData().urls():
             path = url.toLocalFile()
             if os.path.isfile(path) and path.endswith(('.txt', '.TXT')):
-                print(path)
+                log.info(path)
                 self.show_open_fund_biz_data(path)
 
 
