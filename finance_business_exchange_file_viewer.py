@@ -150,8 +150,8 @@ class AppWindow(QMainWindow):
         # TODO 导出
         self.button_export.clicked.connect(self.export_open_fund_data)
 
-        # TODO 存放编辑的数据
-        self.tableWidget.model().dataChanged.connect(self.update_content_to_export)
+        # TODO 存放编辑的数据 (注：此行将导致 PyInstaller v3.3 打包后的app在打开中登标准交换文件时闪退！！！)
+        # self.tableWidget.model().dataChanged.connect(self.update_content_to_export)
 
         # 打开货币基金T+0对账文件
         self.button_browse_monetary_fund_t0_file.clicked.connect(self.browse_monetary_fund_t0_file)
