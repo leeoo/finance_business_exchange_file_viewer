@@ -491,8 +491,7 @@ class AppWindow(QMainWindow):
         exchange_info_content_2dimension_list_mutable = []
         # 将数据解析成二维元组，供后续搜索功能使用
         field_len_list, field_len_precision_list = self.get_field_len_list(_file_flag_type_key)
-        for row_no in range(len(self.exchange_info_content)):
-            record = self.exchange_info_content[row_no]
+        for row_no, record in enumerate(self.exchange_info_content):
             field_values = self.parse_record(field_len_list, field_len_precision_list, record)
             # 添加行号到头部，用于标识当前行位于文件中的真实行号，但展示列表时将该列隐藏
             field_values.insert(0, str(row_no))
@@ -561,8 +560,7 @@ class AppWindow(QMainWindow):
         :param row_no:
         :return:
         """
-        for column_no in range(len(record_values)):
-            cell = record_values[column_no]
+        for column_no, cell in enumerate(record_values):
             if cell is None:
                 cell = ''
             table_item = QTableWidgetItem(str(cell))
@@ -594,8 +592,7 @@ class AppWindow(QMainWindow):
         record_values = []
         # 由于信息体中的汉字是GB18030编码，故需要转换成字节后再按索引范围取值
         record_bytes = str.encode(record, INFO_CONTENT_ENCODING)
-        for index in range(len(field_len_list)):
-            field_len = field_len_list[index]
+        for index, field_len in enumerate(field_len_list):
             _end = _start + field_len
             _record_value = bytes.decode(record_bytes[_start: _end], INFO_CONTENT_ENCODING).strip()
             _start = _end
