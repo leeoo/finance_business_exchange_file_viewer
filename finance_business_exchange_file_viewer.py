@@ -24,7 +24,7 @@ from PyQt5 import uic
 # from finance_business_exchange_file_viewer_ui import Ui_MainWindow
 
 
-__VERSION__ = '0.5.1'
+__VERSION__ = '0.5.2'
 INFO_HEADER_PRE_SECTION_LIST = ['文件标识', '文件版本', '文件创建人', '文件接收人', '日期',
                                 '汇总表号', '文件类型码', '发送人', '接收人', '字段数']
 # 常量声明
@@ -143,7 +143,7 @@ class AppWindow(QMainWindow):
         # 搜索
         self.button_search.clicked.connect(self.search_open_fund_data)
         # 恢复（针对于搜索或排序后，恢复到未执行操作的初始解析状态）
-        self.button_restore.clicked.connect(self.restore_content_data)
+        self.button_restore.clicked.connect(self.restore_open_fund_content_data)
         # TODO 导出
         self.button_export.clicked.connect(self.export_open_fund_data)
 
@@ -152,8 +152,13 @@ class AppWindow(QMainWindow):
 
         # 打开货币基金T+0对账文件
         self.button_browse_monetary_fund_t0_file.clicked.connect(self.browse_monetary_fund_t0_file)
-        self.tableWidget_moneytary_fund_t0.horizontalHeader().sectionClicked['int'].connect(
-            self.tableWidget_moneytary_fund_t0.sortByColumn)
+        self.tableWidget_monetary_fund_t0.horizontalHeader().sectionClicked['int'].connect(
+            self.tableWidget_monetary_fund_t0.sortByColumn)
+
+        # 针对货币基金T+0的搜索
+        self.button_search_monetary.clicked.connect(self.search_monery_t0_data)
+        # 恢复（针对于搜索或排序后，恢复到未执行操作的初始解析状态）
+        self.button_restore_monetary.clicked.connect(self.restore_monetary_fund_t0_content_data)
 
         # TODO 打开赢时胜金手指文件
         # self.button_browse_gold_finger_file.clicked.connect(self.browse_gold_finger_file)
@@ -211,21 +216,28 @@ class AppWindow(QMainWindow):
         error_msg_box = QMessageBox(self)
         error_msg_box.critical(self, '错误提示', error_msg)
 
-    def restore_content_data(self):
-        if len(self.exchange_info_content_2dimension_tuple) == 0:
+    def restore_open_fund_content_data(self):
+        self.restore_content_data(self.exchange_info_content_2dimension_tuple,
+                                  self.exchange_info_fields, self.tableWidget, self.statusbar)
+
+    def restore_monetary_fund_t0_content_data(self):
+        self.restore_content_data(self.mft0_content_2dimension_tuple,
+                                  self.mft0_fields, self.tableWidget_monetary_fund_t0, self.statusbar)
+
+    def restore_content_data(self, content, fields, table_widget, status_bar):
+        if len(content) == 0:
             return
 
-        self.setup_table_widget(self.tableWidget, self.exchange_info_content_2dimension_tuple,
-                                self.exchange_info_fields, False)
-        for row_no, row in enumerate(self.exchange_info_content_2dimension_tuple):
+        self.setup_table_widget(table_widget, content, fields, False)
+        for row_no, row in enumerate(content):
             for column_no, item in enumerate(row):
                 table_item = QTableWidgetItem(item)
-                self.tableWidget.setItem(row_no, column_no, table_item)
+                table_widget.setItem(row_no, column_no, table_item)
                 if column_no == __NO_OF_REAL_ROW_NO_COLUMN__:
                     table_item.setFlags(Qt.NoItemFlags)
 
         # 清空状态条信息
-        self.statusbar.clearMessage()
+        status_bar.clearMessage()
 
     # 可重用方法，用于设置表格控件的初始状态
     def setup_table_widget(self, table_widget, rows_content, header_labels, first_setup):
@@ -240,17 +252,29 @@ class AppWindow(QMainWindow):
     # 从当前解析的数据中查询，而不是只对当前表格中显示的内容做查询
     # 找到与否均弹出提示对话框，或者在界面搜索按钮右侧、左下角或右下角显示！
     def search_open_fund_data(self):
-        _search_key = self.lineEdit_search.text()
+        # _search_key = self.lineEdit_search.text()
+        # log.info('Search key=%s' % _search_key)
+
+        self.search_and_repaint_table(self.exchange_info_content_modified, self.tableWidget,
+                                      self.lineEdit_search, self.statusbar)
+
+    def search_monery_t0_data(self):
+        self.search_and_repaint_table(self.mft0_content_modified, self.tableWidget_monetary_fund_t0,
+                                      self.lineEdit_search_monetary, self.statusbar)
+
+    # 可重用方法，用于查找并重绘表格及状态条控件
+    def search_and_repaint_table(self, content, table_widget, search_line_edit, status_bar):
+        _search_key = search_line_edit.text()
         log.info('Search key=%s' % _search_key)
 
         # 查询时初始化清空表格内容和状态条
-        self.tableWidget.clearContents()
-        self.tableWidget.setRowCount(0)
-        self.statusbar.clearMessage()
+        table_widget.clearContents()
+        table_widget.setRowCount(0)
+        status_bar.clearMessage()
 
         row_no_for_search_result = 0
         row_count_for_search_result = 0
-        for row_no, row in enumerate(self.exchange_info_content_modified):
+        for row_no, row in enumerate(content):
             found = False
             # 第一个循环是找出该行是否有匹配到查询关键字
             for column_no, item in enumerate(row):
@@ -268,19 +292,19 @@ class AppWindow(QMainWindow):
                 row_count_for_search_result += 1
 
             # 为保证搜索后表格行号显示准确，循环每行时均设置表格行数，此处做法有待改进！
-            self.tableWidget.setRowCount(row_count_for_search_result)
+            table_widget.setRowCount(row_count_for_search_result)
 
             # 第二个循环是用于当第一个循环匹配到查询关键字后，渲染该行
             for column_no, item in enumerate(row):
                 table_item = QTableWidgetItem(item)
-                self.tableWidget.setItem(row_no_for_search_result, column_no, table_item)
+                table_widget.setItem(row_no_for_search_result, column_no, table_item)
                 if column_no == __NO_OF_REAL_ROW_NO_COLUMN__:
                     table_item.setFlags(Qt.NoItemFlags)
 
             row_no_for_search_result += 1
 
         # 更新状态条，以显示总结果数，查询到的结果数，是否查到等！
-        self.statusbar.showMessage('搜索到%s条数据！' % row_no_for_search_result)
+        status_bar.showMessage('搜索到%s条数据！' % row_no_for_search_result)
 
     def show_about_info(self):
         self.about_message_box = QMessageBox()
@@ -355,15 +379,26 @@ class AppWindow(QMainWindow):
             self.mft0_fields = _header_columns.copy()
             self.mft0_fields = self.insert_real_no_field_to_head(self.mft0_fields)
 
-            self.setup_table_widget(self.tableWidget_moneytary_fund_t0, _content_lines, self.mft0_fields, True)
+            self.setup_table_widget(self.tableWidget_monetary_fund_t0, _content_lines, self.mft0_fields, True)
+
+            mft0_content_2dimension_list = []
+            mft0_content_2dimension_list_mutable = []
 
             for row_no, row in enumerate(_content_lines):
                 param_values = row.split('|')
                 # 添加行号到头部，用于标识当前行位于文件中的真实行号，但展示列表时可将该列隐藏
                 param_values.insert(0, str(row_no + 1))
-                self.render_table_row(self.tableWidget_moneytary_fund_t0, param_values, row_no)
+                self.render_table_row(self.tableWidget_monetary_fund_t0, param_values, row_no)
+
+                # 将数据保存到二维元组，供后续搜索功能使用
+                mft0_content_2dimension_list.append(tuple(param_values))
+                mft0_content_2dimension_list_mutable.append(param_values)
+
+            self.mft0_content_2dimension_tuple = tuple(mft0_content_2dimension_list)
+            self.mft0_content_modified = mft0_content_2dimension_list_mutable.copy()
+
             # 为了确保表格显示美观不拥挤，在表格表头和内容均填充完后重新设置列宽度为内容宽度
-            self.tableWidget_moneytary_fund_t0.resizeColumnsToContents()
+            self.tableWidget_monetary_fund_t0.resizeColumnsToContents()
         except Exception as e:
             error_msg = '解析文件内容出错！%s' % e
             log.error(error_msg)
@@ -545,7 +580,7 @@ class AppWindow(QMainWindow):
         return field_len_list, field_len_precision_list
 
     def render_table(self, _config_key):
-        # TODO 获得当前文件定义的表头
+        # 获得当前文件定义的表头
         header_labels = []
         for field_info_as_list in self.ofd_config_map[_config_key]:
             field_description = field_info_as_list[OFD_FIELD_DESCRIPTION_INDEX]
@@ -618,7 +653,7 @@ class AppWindow(QMainWindow):
         # log.debug('解析后的参数值 -> %s' % record_values)
         return record_values
 
-    # TODO 将包含给定精度的数值进行转换
+    # 将包含给定精度的数值进行转换
     def fix_value_if_numeric_type(self, _record_value, field_len_precision_list, index):
         fixed_record_value = _record_value
         if field_len_precision_list[index] > 0:  # TODO 还应该加上字段类型为数值的判断条件！
@@ -640,10 +675,10 @@ class AppWindow(QMainWindow):
     def disable_in_developing_functions(self):
         self.button_export.setDisabled(True)
         self.checkBox_remove_blank.setDisabled(True)
-        self.lineEdit_search_monetary.setDisabled(True)
-        self.button_search_monetary.setDisabled(True)
+        # self.lineEdit_search_monetary.setDisabled(True)
+        # self.button_search_monetary.setDisabled(True)
         self.checkBox_remove_blank_monetary.setDisabled(True)
-        self.button_restore_monetary.setDisabled(True)
+        # self.button_restore_monetary.setDisabled(True)
         self.button_export_monetary.setDisabled(True)
         self.tab_ysstech_data.setDisabled(True)
 
