@@ -84,6 +84,7 @@ class AppWindow(QMainWindow):
         self.exchange_info_content_2dimension_tuple = ()  # 二维元组，保存解析后的数据
         self.exchange_info_content_modified = ()  # 修改后的数据，用于导出
 
+        self.mft0_fields = []
         # 用于保存货基T+0文件解析后的数据，以便用于搜索及导出
         self.mft0_content_2dimension_tuple = ()  # 二维元组，保存解析后的数据
         self.mft0_content_modified = ()  # 修改后的数据，用于导出
@@ -214,11 +215,8 @@ class AppWindow(QMainWindow):
         if len(self.exchange_info_content_2dimension_tuple) == 0:
             return
 
-        rows = len(self.exchange_info_content_2dimension_tuple)
-        columns = len(self.exchange_info_content_2dimension_tuple[0])
-        self.tableWidget.clearContents()
-        self.tableWidget.setRowCount(rows)
-        self.tableWidget.setColumnCount(columns)
+        self.setup_table_widget(self.tableWidget, self.exchange_info_content_2dimension_tuple,
+                                self.exchange_info_fields, False)
         for row_no, row in enumerate(self.exchange_info_content_2dimension_tuple):
             for column_no, item in enumerate(row):
                 table_item = QTableWidgetItem(item)
@@ -228,6 +226,16 @@ class AppWindow(QMainWindow):
 
         # 清空状态条信息
         self.statusbar.clearMessage()
+
+    # 可重用方法，用于设置表格控件的初始状态
+    def setup_table_widget(self, table_widget, rows_content, header_labels, first_setup):
+        table_widget.clearContents()
+        table_widget.setAlternatingRowColors(True)  # 设置隔行变色
+        table_widget.setRowCount(len(rows_content))
+        table_widget.setColumnCount(len(header_labels))
+        # 若为首次设置表格，则设置表头标示
+        if first_setup:
+            table_widget.setHorizontalHeaderLabels(header_labels)
 
     # 从当前解析的数据中查询，而不是只对当前表格中显示的内容做查询
     # 找到与否均弹出提示对话框，或者在界面搜索按钮右侧、左下角或右下角显示！
@@ -344,14 +352,15 @@ class AppWindow(QMainWindow):
             log.info('_header_columns: %s' % _header_columns)
             log.info('_content_lines: %s' % _content_lines)
 
-            self.tableWidget_moneytary_fund_t0.clearContents()
-            self.tableWidget_moneytary_fund_t0.setAlternatingRowColors(True)
-            self.tableWidget_moneytary_fund_t0.setColumnCount(len(_header_columns))
-            self.tableWidget_moneytary_fund_t0.setHorizontalHeaderLabels(_header_columns)
-            self.tableWidget_moneytary_fund_t0.setRowCount(len(_content_lines))
+            self.mft0_fields = _header_columns.copy()
+            self.mft0_fields = self.insert_real_no_field_to_head(self.mft0_fields)
+
+            self.setup_table_widget(self.tableWidget_moneytary_fund_t0, _content_lines, self.mft0_fields, True)
 
             for row_no, row in enumerate(_content_lines):
                 param_values = row.split('|')
+                # 添加行号到头部，用于标识当前行位于文件中的真实行号，但展示列表时可将该列隐藏
+                param_values.insert(0, str(row_no + 1))
                 self.render_table_row(self.tableWidget_moneytary_fund_t0, param_values, row_no)
             # 为了确保表格显示美观不拥挤，在表格表头和内容均填充完后重新设置列宽度为内容宽度
             self.tableWidget_moneytary_fund_t0.resizeColumnsToContents()
@@ -409,7 +418,7 @@ class AppWindow(QMainWindow):
             # log.debug('_file_end_flag -> %s' % _file_end_flag)
 
             FILE_CONTENT_BEGIN_FLAG = 'OFDCFDAT'
-            info_header_pre_section_dict = {} # 前10行
+            info_header_pre_section_dict = {}  # 前10行
             info_header_middle_section_field_list = []
             # info_header_last_section_record_count = 0
             info_content_record_list = []
@@ -479,7 +488,7 @@ class AppWindow(QMainWindow):
         self.exchange_info_content = info_content_record_list
 
         # 补上手工添加的首列——真实行号
-        self.exchange_info_fields.insert(0, '#真实行号')
+        self.exchange_info_fields = self.insert_real_no_field_to_head(self.exchange_info_fields)
 
         _file_flag_type_key = self.exchange_info_header[INFO_HEADER_PRE_SECTION_LIST[6]]
         if _file_flag_type_key in self.ofd_config_map.keys():
@@ -491,11 +500,11 @@ class AppWindow(QMainWindow):
         exchange_info_content_2dimension_list = []
         exchange_info_content_2dimension_list_mutable = []
         # 将数据解析成二维元组，供后续搜索功能使用
-        field_len_list, field_len_precision_list = self.get_field_len_list(_file_flag_type_key)
+        field_length_list, field_length_precision_list = self.get_field_len_list(_file_flag_type_key)
         for row_no, record in enumerate(self.exchange_info_content):
-            field_values = self.parse_record(field_len_list, field_len_precision_list, record)
-            # 添加行号到头部，用于标识当前行位于文件中的真实行号，但展示列表时将该列隐藏
-            field_values.insert(0, str(row_no))
+            field_values = self.parse_record(field_length_list, field_length_precision_list, record)
+            # 添加行号到头部，用于标识当前行位于文件中的真实行号，但展示列表时可将该列隐藏
+            field_values.insert(0, str(row_no + 1))
             exchange_info_content_2dimension_list.append(tuple(field_values))
             exchange_info_content_2dimension_list_mutable.append(field_values)
 
@@ -509,6 +518,16 @@ class AppWindow(QMainWindow):
         self.render_header_info(_file_flag_type_key, _filename, INFO_HEADER_PRE_SECTION_LIST)
         # 展示表格数据部分
         self.render_table(_file_flag_type_key)
+
+    # 可重用方法，用于把真实行号列添加到表头作为首列
+    def insert_real_no_field_to_head(self, fields):
+        """
+        补上手工添加的首列——真实行号
+        :param fields:
+        :return:
+        """
+        fields.insert(0, '#真实行号')
+        return fields
 
     # 获得当前文件定义的各字段长度列表
     def get_field_len_list(self, _config_key):
@@ -526,11 +545,6 @@ class AppWindow(QMainWindow):
         return field_len_list, field_len_precision_list
 
     def render_table(self, _config_key):
-        self.tableWidget.clearContents()
-        self.tableWidget.setAlternatingRowColors(True)  # 设置隔行变色
-        self.tableWidget.setColumnCount(len(self.exchange_info_fields))
-        # self.tableWidget.hideColumn(0)  # 隐藏首列
-
         # TODO 获得当前文件定义的表头
         header_labels = []
         for field_info_as_list in self.ofd_config_map[_config_key]:
@@ -538,10 +552,11 @@ class AppWindow(QMainWindow):
             header_labels.append(field_description)
 
         # 补上手工添加的首列——真实行号
-        header_labels.insert(0, '#真实行号')
+        header_labels = self.insert_real_no_field_to_head(header_labels)
 
-        self.tableWidget.setHorizontalHeaderLabels(header_labels)
-        self.tableWidget.setRowCount(len(self.exchange_info_content))
+        self.setup_table_widget(self.tableWidget, self.exchange_info_content, header_labels, True)
+        # self.tableWidget.hideColumn(0)  # 隐藏首列
+
         # field_len_list, field_len_precision_list = self.get_field_len_list(_config_key)
         log.info('配置文件key -> %s' % _config_key)
         for row_no, row in enumerate(self.exchange_info_content_2dimension_tuple):
