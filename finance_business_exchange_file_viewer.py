@@ -28,7 +28,7 @@ __VERSION__ = '0.5.1'
 INFO_HEADER_PRE_SECTION_LIST = ['文件标识', '文件版本', '文件创建人', '文件接收人', '日期',
                                 '汇总表号', '文件类型码', '发送人', '接收人', '字段数']
 # 常量声明
-INFO_CONTENT_ENCODING = 'GB18030'
+GB18030_ENCODING = 'GB18030'
 UTF_8_ENCODING = 'UTF-8'
 OFD_FIELD_ID_INDEX, OFD_FIELD_NAME_INDEX, OFD_FIELD_TYPE_INDEX, OFD_FIELD_LENGTH_INDEX, \
     OFD_FIELD_DESCRIPTION_INDEX, OFD_FIELD_COMMENTS_INDEX, OFD_FIELD_REQUIRED_INDEX = 0, 1, 2, 3, 4, 5, 6
@@ -151,7 +151,8 @@ class AppWindow(QMainWindow):
 
         # 打开货币基金T+0对账文件
         self.button_browse_monetary_fund_t0_file.clicked.connect(self.browse_monetary_fund_t0_file)
-        self.tableWidget_moneytary_fund_t0.horizontalHeader().sectionClicked['int'].connect(self.tableWidget_moneytary_fund_t0.sortByColumn)
+        self.tableWidget_moneytary_fund_t0.horizontalHeader().sectionClicked['int'].connect(
+            self.tableWidget_moneytary_fund_t0.sortByColumn)
 
         # TODO 打开赢时胜金手指文件
         # self.button_browse_gold_finger_file.clicked.connect(self.browse_gold_finger_file)
@@ -160,13 +161,13 @@ class AppWindow(QMainWindow):
         self.actionContent.triggered.connect(self.show_help_info)
 
     def update_content_to_export(self, top_left, bottom_right):
-        _table_item_changed = self.tableWidget.item(top_left.row(), top_left.column())
-        _real_row_no_item = self.tableWidget.item(top_left.row(), __NO_OF_REAL_ROW_NO_COLUMN__)
-        log.info("更新表格内容, real_row=%s, row=%s, column=%s" % (_real_row_no_item.text(), top_left.row(), top_left.column()))
-        log.info("_table_item_changed -> %s" % _table_item_changed.text())
-        _real_row_no = int(_real_row_no_item.text())
+        table_item_changed = self.tableWidget.item(top_left.row(), top_left.column())
+        real_row_no_item = self.tableWidget.item(top_left.row(), __NO_OF_REAL_ROW_NO_COLUMN__)
+        log.info("更新表格, real_row=%s, row=%s, column=%s" % (real_row_no_item.text(), top_left.row(), top_left.column()))
+        log.info("table_item_changed -> %s" % table_item_changed.text())
+        real_row_no = int(real_row_no_item.text())
         # 更新数据列表
-        self.exchange_info_content_modified[_real_row_no][top_left.column()] = _table_item_changed.text()
+        self.exchange_info_content_modified[real_row_no][top_left.column()] = table_item_changed.text()
 
     def export_open_fund_data(self):
         # TODO 根据更新后的数据列表，导出文件，文件名扩展名前添加 'yyyyMMddHHmmss_exported' 字样
@@ -299,7 +300,8 @@ class AppWindow(QMainWindow):
 
     def browse_monetary_fund_t0_file(self):
         _file_info = QFileDialog.getOpenFileName(self.tab_monetary_fund_data, '打开文件',
-                                                 os.path.expanduser('~'), '信息交换数据文件(partner_fund*.txt; fund_partner*.txt; fund_*_*.TXT)')
+                                                 os.path.expanduser('~'),
+                                                 '信息交换数据文件(partner_fund*.txt; fund_partner*.txt; fund_*_*.TXT)')
         _filename = _file_info[0]
         log.info('filename -> %s' % _filename)
         self.lineedit_monetary_fund_t0_file_path.setText(_filename)
@@ -313,18 +315,18 @@ class AppWindow(QMainWindow):
         _content = None
 
         try:
-            _file_input_stream = open(_filename, 'rt', encoding=INFO_CONTENT_ENCODING)
+            _file_input_stream = open(_filename, 'rt', encoding=GB18030_ENCODING)
             _content = _file_input_stream.read().strip()
-            log.info('以%s编码打开成功' % INFO_CONTENT_ENCODING)
+            log.info('以%s编码打开成功' % GB18030_ENCODING)
         except UnicodeDecodeError as e:
-            log.error('以%s打开失败，尝试以UTF-8编码打开' % INFO_CONTENT_ENCODING)
+            log.error('以%s打开失败，尝试以UTF-8编码打开' % GB18030_ENCODING)
             try:
                 _file_input_stream = open(_filename, 'rt', encoding=UTF_8_ENCODING)
                 _content = _file_input_stream.read().strip()
                 log.info('以%s编码打开成功' % UTF_8_ENCODING)
             except Exception as e:
                 log.error('以%s编码打开失败' % UTF_8_ENCODING)
-                self.popup_error_msg_box('尝试以%s和%s编码打开文件均失败，请检查文件内容编码！' % (INFO_CONTENT_ENCODING, UTF_8_ENCODING))
+                self.popup_error_msg_box('尝试以%s和%s编码打开文件均失败，请检查文件内容编码！' % (GB18030_ENCODING, UTF_8_ENCODING))
                 return
             finally:
                 if _file_input_stream is not None:
@@ -387,7 +389,7 @@ class AppWindow(QMainWindow):
         self.lineEdit_interface_file_path.setText(_filename)
         # ----------- 读取 -----------
         try:
-            file_input_stream = open(_filename, 'rt', encoding=INFO_CONTENT_ENCODING)
+            file_input_stream = open(_filename, 'rt', encoding=GB18030_ENCODING)
             content = file_input_stream.read().strip()
 
             # 前10行均为固定的消息头部信息
@@ -591,10 +593,10 @@ class AppWindow(QMainWindow):
         _end = 0
         record_values = []
         # 由于信息体中的汉字是GB18030编码，故需要转换成字节后再按索引范围取值
-        record_bytes = str.encode(record, INFO_CONTENT_ENCODING)
+        record_bytes = str.encode(record, GB18030_ENCODING)
         for index, field_len in enumerate(field_len_list):
             _end = _start + field_len
-            _record_value = bytes.decode(record_bytes[_start: _end], INFO_CONTENT_ENCODING).strip()
+            _record_value = bytes.decode(record_bytes[_start: _end], GB18030_ENCODING).strip()
             _start = _end
             # log.debug('参数%d的值为: %s' % (index, _record_value))
             _record_value = self.fix_value_if_numeric_type(_record_value, field_len_precision_list, index)
