@@ -299,8 +299,7 @@ class AppWindow(QMainWindow):
         #     log.info('点击确认')
 
     def browse_monetary_fund_t0_file(self):
-        _file_info = QFileDialog.getOpenFileName(self.tab_monetary_fund_data, '打开文件',
-                                                 os.path.expanduser('~'),
+        _file_info = QFileDialog.getOpenFileName(self.tab_monetary_fund_data, '打开文件', os.path.expanduser('~'),
                                                  '信息交换数据文件(partner_fund*.txt; fund_partner*.txt; fund_*_*.TXT)')
         _filename = _file_info[0]
         log.info('filename -> %s' % _filename)
