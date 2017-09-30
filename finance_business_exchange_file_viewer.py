@@ -271,7 +271,7 @@ class AppWindow(QMainWindow):
 
             row_no_for_search_result += 1
 
-        # TODO 更新状态条，以显示总结果数，查询到的结果数，是否查到等！
+        # 更新状态条，以显示总结果数，查询到的结果数，是否查到等！
         self.statusbar.showMessage('搜索到%s条数据！' % row_no_for_search_result)
 
     def show_about_info(self):
@@ -372,8 +372,8 @@ class AppWindow(QMainWindow):
         self.lineEdit_t0_file_receiver.setText(_basename.split('_')[5])
 
     def browse_open_fund_business_data_exchange_file(self):
-        _file_info = QFileDialog.getOpenFileName(self.tab_open_fund_data, '打开文件',
-                                                 os.path.expanduser('~'), '信息交换数据文件(OFD*.TXT; OFI*.TXT)')
+        _file_info = QFileDialog.getOpenFileName(self.tab_open_fund_data, '打开文件', os.path.expanduser('~'),
+                                                 '信息交换数据文件(OFD*.TXT; OFI*.TXT)')
         _filename = _file_info[0]
         log.info('filename -> %s' % _filename)
         if '' == _filename.strip():
