@@ -239,8 +239,15 @@ class AppWindow(QMainWindow):
         # 清空状态条信息
         status_bar.clearMessage()
 
-    # 可重用方法，用于设置表格控件的初始状态
     def setup_table_widget(self, table_widget, rows_content, header_labels, first_setup):
+        """
+        用于设置表格控件的初始状态 // 可重用
+        :param table_widget:
+        :param rows_content:
+        :param header_labels:
+        :param first_setup:
+        :return:
+        """
         table_widget.clearContents()
         table_widget.setAlternatingRowColors(True)  # 设置隔行变色
         table_widget.setRowCount(len(rows_content))
@@ -262,8 +269,15 @@ class AppWindow(QMainWindow):
         self.search_and_repaint_table(self.mft0_content_modified, self.tableWidget_monetary_fund_t0,
                                       self.lineEdit_search_monetary, self.statusbar)
 
-    # 可重用方法，用于查找并重绘表格及状态条控件
     def search_and_repaint_table(self, content, table_widget, search_line_edit, status_bar):
+        """
+        用于查找并重绘表格及状态条控件 // 可重用
+        :param content:
+        :param table_widget:
+        :param search_line_edit:
+        :param status_bar:
+        :return:
+        """
         _search_key = search_line_edit.text()
         log.info('Search key=%s' % _search_key)
 
@@ -554,10 +568,9 @@ class AppWindow(QMainWindow):
         # 展示表格数据部分
         self.render_table(_file_flag_type_key)
 
-    # 可重用方法，用于把真实行号列添加到表头作为首列
     def insert_real_no_field_to_head(self, fields):
         """
-        补上手工添加的首列——真实行号
+        用于把真实行号列添加到表头作为首列 // 可重用
         :param fields:
         :return:
         """
