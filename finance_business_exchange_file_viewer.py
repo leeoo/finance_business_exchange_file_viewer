@@ -59,8 +59,9 @@ def resource_path(relative_path):
 # logging.config.fileConfig(resource_path('config/logging.ini'))
 # log = logging.getLogger()
 
+
 logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)-15s %(levelname)-8s %(message)s',
+                    format='%(asctime)-15s %(levelname)-8s %(module)s:%(lineno)s %(funcName)s %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     filename=resource_path("app.log"),
                     filemode='w')
@@ -299,10 +300,10 @@ class AppWindow(QMainWindow):
                     found = True
                     break
             if not found:
-                log.info('Not found!')
+                log.debug('Not found!')
                 continue
             else:
-                log.info('Found it! Render current row!')
+                log.debug('Found it! Render current row!')
                 row_count_for_search_result += 1
 
             # 为保证搜索后表格行号显示准确，循环每行时均设置表格行数，此处做法有待改进！
