@@ -17,14 +17,9 @@ import sys
 import os.path
 import logging.config
 from configparser import ConfigParser
-# from PyQt5.QtCore import *
-# from PyQt5.QtGui import *
-# from PyQt5.QtWidgets import *
-# from PyQt5 import uic
 from PySide2.QtCore import *
 from PySide2.QtWidgets import *
 from PySide2.QtUiTools import QUiLoader
-# from finance_business_exchange_file_viewer_ui import Ui_MainWindow
 
 
 __VERSION__ = '0.6.0'
