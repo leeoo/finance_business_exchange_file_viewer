@@ -3,13 +3,13 @@
 """
 # 启动时即加载所有配置信息
 # 解析《开放式基金业务数据交换协议》相关的文件时，只以规定的GB18030编码解析，其它类型的数据文件若用GB18030编码解析失败，会再尝试以UTF-8解析
-TODO
 # 异常提示以对话框弹出告知
+TODO
 # 可编辑并保存为新文件
-# 可导出为Excel文件
+# ~~ 可导出为Excel文件 ~~
 @author         Lex Li
 @version        1.0
-@description    使用PyQt5的uic直接加载并解析UI文件参考 http://blog.csdn.net/chlk118/article/details/72595325
+@description
 """
 
 
@@ -24,27 +24,18 @@ from PyQt5 import uic
 # from finance_business_exchange_file_viewer_ui import Ui_MainWindow
 
 
-__VERSION__ = '0.5'
+__VERSION__ = '0.5.2'
 INFO_HEADER_PRE_SECTION_LIST = ['文件标识', '文件版本', '文件创建人', '文件接收人', '日期',
                                 '汇总表号', '文件类型码', '发送人', '接收人', '字段数']
 # 常量声明
-INFO_CONTENT_ENCODING = 'GB18030'
+GB18030_ENCODING = 'GB18030'
 UTF_8_ENCODING = 'UTF-8'
 OFD_FIELD_ID_INDEX, OFD_FIELD_NAME_INDEX, OFD_FIELD_TYPE_INDEX, OFD_FIELD_LENGTH_INDEX, \
     OFD_FIELD_DESCRIPTION_INDEX, OFD_FIELD_COMMENTS_INDEX, OFD_FIELD_REQUIRED_INDEX = 0, 1, 2, 3, 4, 5, 6
+__NO_OF_REAL_ROW_NO_COLUMN__ = 0  # 真实行号所在的列
 
 
-# Define function to import external files when using PyInstaller.
-# def resource_path(relative_path):
-#     try:
-#         base_path = sys._MEIPASS
-#     except Exception:
-#         base_path = os.path.abspath('.')
-#
-#     print('base_path -> %s, relative_path -> %s' % (base_path, relative_path))
-#     full_path = os.path.join(base_path, relative_path)
-#     print('full_path -> %s' % full_path)
-#     return full_path
+# Special function to import external files when using PyInstaller.
 def resource_path(relative_path):
     if hasattr(sys, "_MEIPASS"):
         base_path = sys._MEIPASS
@@ -63,13 +54,14 @@ def resource_path(relative_path):
 #     basedir = sys._MEIPASS
 # else:
 #     basedir = os.path.dirname(__file__)
-
+#
 # logging.config.fileConfig(os.path.join(basedir, 'config/logging.ini'))
 # logging.config.fileConfig(resource_path('config/logging.ini'))
 # log = logging.getLogger()
 
+
 logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)-15s %(levelname)-8s %(message)s',
+                    format='%(asctime)-15s %(levelname)-8s %(module)s:%(lineno)s %(funcName)s %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     filename=resource_path("app.log"),
                     filemode='w')
@@ -85,67 +77,53 @@ class AppWindow(QMainWindow):
         # e.g. {'01':[[4,'Address','C',120,'通讯地址'],[...],...], '02':[[4,'Address','C',120,'通讯地址'],[...],...], ...}
         self.ofd_config_map = {}
 
-        # 配置信息，以文件类型编号为key，值为参数列表
-        self.config_dict = {}
-
         self.exchange_info_header = {}
         self.exchange_info_fields = []
         self.exchange_info_content = []
+
+        # 用于保存中登标准交换文件解析后的数据，以便用于搜索及导出
         self.exchange_info_content_2dimension_tuple = ()  # 二维元组，保存解析后的数据
+        self.exchange_info_content_modified = ()  # 修改后的数据，用于导出
+
+        self.mft0_fields = []
+        # 用于保存货基T+0文件解析后的数据，以便用于搜索及导出
+        self.mft0_content_2dimension_tuple = ()  # 二维元组，保存解析后的数据
+        self.mft0_content_modified = ()  # 修改后的数据，用于导出
+
+        self.about_message_box = None
+        self.row_content_dialog = None
+        self.help_message_box = None
 
         try:
             self.load_config()
             log.info('配置文件加载完毕')
 
-            self.about_message_box = None
-            self.row_content_dialog = None
-            self.help_message_box = None
-
             # 使用PyQt5的uic来加载并解析UI文件
             uic.loadUi(resource_path('finance_business_exchange_file_viewer.ui'), self)
+
+            self.adjust_layout()
 
             # 支持拖拽操作
             self.setAcceptDrops(True)  # tab_open_fund_data
             # self.dragEnterEvent(True)
             # self.tab_open_fund_data.dropped.connect(self.handle_drop_action)
 
+            self.handle_ui_action()
+
             # 禁用尚未开发完成的功能
             self.disable_in_developing_functions()
-
-            self.adjust_layout()
-
-            self.handle_ui_action()
         except Exception as e:
             # error_msg = '程序内部错误，请检查运行日志！'
             error_msg = '程序内部错误，请检查运行日志！errorMsg=%s' % e
             log.error(error_msg + '异常信息：%s' % e)
             self.popup_error_msg_box(error_msg)
 
-    def disable_in_developing_functions(self):
-        self.button_export.setDisabled(True)
-        self.checkBox_remove_blank.setDisabled(True)
-        self.lineEdit_search_monetary.setDisabled(True)
-        self.button_search_monetary.setDisabled(True)
-        self.checkBox_remove_blank_monetary.setDisabled(True)
-        self.button_restore_monetary.setDisabled(True)
-        self.button_export_monetary.setDisabled(True)
-        self.tab_ysstech_data.setDisabled(True)
-
-    def handle_drop_action(self):
-        print('Drop action emit!!!!!!!')
-
-    def dragEnterEvent(self, dragEnterEvent):
-        if dragEnterEvent.mimeData().hasUrls():
-            dragEnterEvent.accept()
-        else:
-            dragEnterEvent.ignore()
-
-    def dropEvent(self, dropEvent):
-        for url in dropEvent.mimeData().urls():
-            path = url.toLocalFile()
-            if os.path.isfile(path) and path.endswith(('.txt', '.TXT')):
-                print(path)
-                self.show_open_fund_biz_data(path)
+    def load_config(self):
+        log.info('加载OFD数据文件结构定义')
+        # self.load_data_file_construction_definition('data_exchange_file_definition_rule.ini')
+        self.load_ofd_file_definition('config/OFD_0901_20161014.ini')
+        # log.info('加载OFI索引文件结构定义')
+        # self.load_index_file_construction_definition('exchange_index_file_definition_rule.ini')
 
     # 调整UI布局中控件间距
     def adjust_layout(self):
@@ -156,14 +134,51 @@ class AppWindow(QMainWindow):
         self.gridLayout_3.setVerticalSpacing(0)
         self.gridLayout_3.setHorizontalSpacing(5)
 
-    def load_config(self):
-        log.info('加载OFD数据文件结构定义')
-        # self.load_data_file_construction_definition('data_exchange_file_definition_rule.ini')
-        self.load_ofd_file_definition('config/OFD_0901_20161014.ini')
-        # log.info('加载OFI索引文件结构定义')
-        # self.load_index_file_construction_definition('exchange_index_file_definition_rule.ini')
+    def handle_ui_action(self):
+        # 打开开放式基金业务数据交换文件
+        self.button_browse_file.clicked.connect(self.browse_open_fund_business_data_exchange_file)
+        # 点击表头按当前列排序（直接使用TableWidget内置方法）
+        self.tableWidget.horizontalHeader().sectionClicked['int'].connect(self.tableWidget.sortByColumn)
+        # 点击左侧行头将该行数据展示在弹出框中，以key-value形式显示
+        # self.tableWidget.verticalHeader().sectionClicked['int'].connect(self.show_table_row_content)
+        # 搜索
+        self.button_search.clicked.connect(self.search_open_fund_data)
+        # 恢复（针对于搜索或排序后，恢复到未执行操作的初始解析状态）
+        self.button_restore.clicked.connect(self.restore_open_fund_content_data)
+        # TODO 导出
+        self.button_export.clicked.connect(self.export_open_fund_data)
 
-        #     self.config_dict['FILE_' + file_flag_type] = self.load_data_file_content_definition(file_flag_type)
+        # TODO 存放编辑的数据 (注：此行将导致 PyInstaller v3.3 打包后的app在打开中登标准交换文件时闪退！！！)
+        # self.tableWidget.model().dataChanged.connect(self.update_content_to_export)
+
+        # 打开货币基金T+0对账文件
+        self.button_browse_monetary_fund_t0_file.clicked.connect(self.browse_monetary_fund_t0_file)
+        self.tableWidget_monetary_fund_t0.horizontalHeader().sectionClicked['int'].connect(
+            self.tableWidget_monetary_fund_t0.sortByColumn)
+
+        # 针对货币基金T+0的搜索
+        self.button_search_monetary.clicked.connect(self.search_monery_t0_data)
+        # 恢复（针对于搜索或排序后，恢复到未执行操作的初始解析状态）
+        self.button_restore_monetary.clicked.connect(self.restore_monetary_fund_t0_content_data)
+
+        # TODO 打开赢时胜金手指文件
+        # self.button_browse_gold_finger_file.clicked.connect(self.browse_gold_finger_file)
+
+        self.actionAbout.triggered.connect(self.show_about_info)
+        self.actionContent.triggered.connect(self.show_help_info)
+
+    def update_content_to_export(self, top_left, bottom_right):
+        table_item_changed = self.tableWidget.item(top_left.row(), top_left.column())
+        real_row_no_item = self.tableWidget.item(top_left.row(), __NO_OF_REAL_ROW_NO_COLUMN__)
+        log.info("更新表格, real_row=%s, row=%s, column=%s" % (real_row_no_item.text(), top_left.row(), top_left.column()))
+        log.info("table_item_changed -> %s" % table_item_changed.text())
+        real_row_no = int(real_row_no_item.text())
+        # 更新数据列表
+        self.exchange_info_content_modified[real_row_no][top_left.column()] = table_item_changed.text()
+
+    def export_open_fund_data(self):
+        # TODO 根据更新后的数据列表，导出文件，文件名扩展名前添加 'yyyyMMddHHmmss_exported' 字样
+        pass
 
     def load_ofd_file_definition(self, file_path):
         log.info('OFD配置文件路径: %s' % file_path)
@@ -202,84 +217,109 @@ class AppWindow(QMainWindow):
         error_msg_box = QMessageBox(self)
         error_msg_box.critical(self, '错误提示', error_msg)
 
-    def handle_ui_action(self):
-        # 打开开放式基金业务数据交换文件
-        self.button_browse_file.clicked.connect(self.browse_open_fund_business_data_exchange_file)
-        # 点击表头按当前列排序（直接使用TableWidget内置方法）
-        self.tableWidget.horizontalHeader().sectionClicked['int'].connect(self.tableWidget.sortByColumn)
-        # 点击左侧行头将该行数据展示在弹出框中，以key-value形式显示
-        # self.tableWidget.verticalHeader().sectionClicked['int'].connect(self.show_table_row_content)
-        # 搜索
-        self.button_search.clicked.connect(self.search_open_fund_data)
-        # 恢复（针对于搜索或排序后，恢复到未执行操作的初始解析状态）
-        self.button_restore.clicked.connect(self.restore_content_data)
+    def restore_open_fund_content_data(self):
+        self.restore_content_data(self.exchange_info_content_2dimension_tuple,
+                                  self.exchange_info_fields, self.tableWidget, self.statusbar)
 
-        # 打开货币基金T+0对账文件
-        self.button_browse_monetary_fund_t0_file.clicked.connect(self.browse_monetary_fund_t0_file)
-        self.tableWidget_moneytary_fund_t0.horizontalHeader().sectionClicked['int'].connect(self.tableWidget_moneytary_fund_t0.sortByColumn)
+    def restore_monetary_fund_t0_content_data(self):
+        self.restore_content_data(self.mft0_content_2dimension_tuple,
+                                  self.mft0_fields, self.tableWidget_monetary_fund_t0, self.statusbar)
 
-        # TODO 打开赢时胜金手指文件
-        # self.button_browse_gold_finger_file.clicked.connect(self.browse_gold_finger_file)
-
-        self.actionAbout.triggered.connect(self.show_about_info)
-        self.actionContent.triggered.connect(self.show_help_info)
-
-    def restore_content_data(self):
-        if len(self.exchange_info_content_2dimension_tuple) == 0:
+    def restore_content_data(self, content, fields, table_widget, status_bar):
+        if len(content) == 0:
             return
 
-        rows = len(self.exchange_info_content_2dimension_tuple)
-        columns = len(self.exchange_info_content_2dimension_tuple[0])
-        self.tableWidget.clearContents()
-        self.tableWidget.setRowCount(rows)
-        self.tableWidget.setColumnCount(columns)
-        for row_no, row in enumerate(self.exchange_info_content_2dimension_tuple):
+        self.setup_table_widget(table_widget, content, fields, False)
+        for row_no, row in enumerate(content):
             for column_no, item in enumerate(row):
                 table_item = QTableWidgetItem(item)
-                self.tableWidget.setItem(row_no, column_no, table_item)
+                table_widget.setItem(row_no, column_no, table_item)
+                if column_no == __NO_OF_REAL_ROW_NO_COLUMN__:
+                    table_item.setFlags(Qt.NoItemFlags)
 
         # 清空状态条信息
-        self.statusbar.clearMessage()
+        status_bar.clearMessage()
+
+    def setup_table_widget(self, table_widget, rows_content, header_labels, first_setup):
+        """
+        用于设置表格控件的初始状态 // 可重用
+        :param table_widget:
+        :param rows_content:
+        :param header_labels:
+        :param first_setup:
+        :return:
+        """
+        table_widget.clearContents()
+        table_widget.setAlternatingRowColors(True)  # 设置隔行变色
+        table_widget.setRowCount(len(rows_content))
+        table_widget.setColumnCount(len(header_labels))
+        # 若为首次设置表格，则设置表头标示
+        if first_setup:
+            table_widget.setHorizontalHeaderLabels(header_labels)
 
     # 从当前解析的数据中查询，而不是只对当前表格中显示的内容做查询
     # 找到与否均弹出提示对话框，或者在界面搜索按钮右侧、左下角或右下角显示！
     def search_open_fund_data(self):
-        _search_key = self.lineEdit_search.text()
-        print('Search key=%s' % _search_key)
+        # _search_key = self.lineEdit_search.text()
+        # log.info('Search key=%s' % _search_key)
+
+        self.search_and_repaint_table(self.exchange_info_content_modified, self.tableWidget,
+                                      self.lineEdit_search, self.statusbar)
+
+    def search_monery_t0_data(self):
+        self.search_and_repaint_table(self.mft0_content_modified, self.tableWidget_monetary_fund_t0,
+                                      self.lineEdit_search_monetary, self.statusbar)
+
+    def search_and_repaint_table(self, content, table_widget, search_line_edit, status_bar):
+        """
+        用于查找并重绘表格及状态条控件 // 可重用
+        :param content:
+        :param table_widget:
+        :param search_line_edit:
+        :param status_bar:
+        :return:
+        """
+        _search_key = search_line_edit.text()
+        log.info('Search key=%s' % _search_key)
 
         # 查询时初始化清空表格内容和状态条
-        self.tableWidget.clearContents()
-        self.tableWidget.setRowCount(0)
-        self.statusbar.clearMessage()
+        table_widget.clearContents()
+        table_widget.setRowCount(0)
+        status_bar.clearMessage()
 
         row_no_for_search_result = 0
         row_count_for_search_result = 0
-        for row_no, row in enumerate(self.exchange_info_content_2dimension_tuple):
+        for row_no, row in enumerate(content):
             found = False
             # 第一个循环是找出该行是否有匹配到查询关键字
             for column_no, item in enumerate(row):
+                # 由于首列（隐藏或禁止编辑）是存放的真实行号，故搜索时应排除该列！
+                if column_no == __NO_OF_REAL_ROW_NO_COLUMN__:
+                    continue
                 if _search_key in item:
                     found = True
                     break
             if not found:
-                log.info('Not found!')
+                log.debug('Not found!')
                 continue
             else:
-                log.info('Found it! Render current row!')
+                log.debug('Found it! Render current row!')
                 row_count_for_search_result += 1
 
             # 为保证搜索后表格行号显示准确，循环每行时均设置表格行数，此处做法有待改进！
-            self.tableWidget.setRowCount(row_count_for_search_result)
+            table_widget.setRowCount(row_count_for_search_result)
 
             # 第二个循环是用于当第一个循环匹配到查询关键字后，渲染该行
             for column_no, item in enumerate(row):
                 table_item = QTableWidgetItem(item)
-                self.tableWidget.setItem(row_no_for_search_result, column_no, table_item)
+                table_widget.setItem(row_no_for_search_result, column_no, table_item)
+                if column_no == __NO_OF_REAL_ROW_NO_COLUMN__:
+                    table_item.setFlags(Qt.NoItemFlags)
 
             row_no_for_search_result += 1
 
-        # TODO 更新状态条，以显示总结果数，查询到的结果数，是否查到等！
-        self.statusbar.showMessage('搜索到%s条数据！' % row_no_for_search_result)
+        # 更新状态条，以显示总结果数，查询到的结果数，是否查到等！
+        status_bar.showMessage('搜索到%s条数据！' % row_no_for_search_result)
 
     def show_about_info(self):
         self.about_message_box = QMessageBox()
@@ -306,8 +346,8 @@ class AppWindow(QMainWindow):
         #     log.info('点击确认')
 
     def browse_monetary_fund_t0_file(self):
-        _file_info = QFileDialog.getOpenFileName(self.tab_monetary_fund_data, '打开文件',
-                                                 os.path.expanduser('~'), '信息交换数据文件(partner_fund*.txt; fund_partner*.txt; fund_*_*.TXT)')
+        _file_info = QFileDialog.getOpenFileName(self.tab_monetary_fund_data, '打开文件', os.path.expanduser('~'),
+                                                 '信息交换数据文件(partner_fund*.txt; fund_partner*.txt; fund_*_*.TXT)')
         _filename = _file_info[0]
         log.info('filename -> %s' % _filename)
         self.lineedit_monetary_fund_t0_file_path.setText(_filename)
@@ -321,18 +361,18 @@ class AppWindow(QMainWindow):
         _content = None
 
         try:
-            _file_input_stream = open(_filename, 'rt', encoding=INFO_CONTENT_ENCODING)
+            _file_input_stream = open(_filename, 'rt', encoding=GB18030_ENCODING)
             _content = _file_input_stream.read().strip()
-            log.info('以%s编码打开成功' % INFO_CONTENT_ENCODING)
+            log.info('以%s编码打开成功' % GB18030_ENCODING)
         except UnicodeDecodeError as e:
-            log.error('以%s打开失败，尝试以UTF-8编码打开' % INFO_CONTENT_ENCODING)
+            log.error('以%s打开失败，尝试以UTF-8编码打开' % GB18030_ENCODING)
             try:
                 _file_input_stream = open(_filename, 'rt', encoding=UTF_8_ENCODING)
                 _content = _file_input_stream.read().strip()
                 log.info('以%s编码打开成功' % UTF_8_ENCODING)
             except Exception as e:
                 log.error('以%s编码打开失败' % UTF_8_ENCODING)
-                self.popup_error_msg_box('尝试以%s和%s编码打开文件均失败，请检查文件内容编码！' % (INFO_CONTENT_ENCODING, UTF_8_ENCODING))
+                self.popup_error_msg_box('尝试以%s和%s编码打开文件均失败，请检查文件内容编码！' % (GB18030_ENCODING, UTF_8_ENCODING))
                 return
             finally:
                 if _file_input_stream is not None:
@@ -351,17 +391,29 @@ class AppWindow(QMainWindow):
             log.info('_header_columns: %s' % _header_columns)
             log.info('_content_lines: %s' % _content_lines)
 
-            self.tableWidget_moneytary_fund_t0.clearContents()
-            self.tableWidget_moneytary_fund_t0.setAlternatingRowColors(True)
-            self.tableWidget_moneytary_fund_t0.setColumnCount(len(_header_columns))
-            self.tableWidget_moneytary_fund_t0.setHorizontalHeaderLabels(_header_columns)
-            self.tableWidget_moneytary_fund_t0.setRowCount(len(_content_lines))
+            self.mft0_fields = _header_columns.copy()
+            self.mft0_fields = self.insert_real_no_field_to_head(self.mft0_fields)
 
-            for row_no in range(len(_content_lines)):
-                param_values = _content_lines[row_no].split('|')
-                self.render_table_row(self.tableWidget_moneytary_fund_t0, param_values, row_no)
+            self.setup_table_widget(self.tableWidget_monetary_fund_t0, _content_lines, self.mft0_fields, True)
+
+            mft0_content_2dimension_list = []
+            mft0_content_2dimension_list_mutable = []
+
+            for row_no, row in enumerate(_content_lines):
+                param_values = row.split('|')
+                # 添加行号到头部，用于标识当前行位于文件中的真实行号，但展示列表时可将该列隐藏
+                param_values.insert(0, str(row_no + 1))
+                self.render_table_row(self.tableWidget_monetary_fund_t0, param_values, row_no)
+
+                # 将数据保存到二维元组，供后续搜索功能使用
+                mft0_content_2dimension_list.append(tuple(param_values))
+                mft0_content_2dimension_list_mutable.append(param_values)
+
+            self.mft0_content_2dimension_tuple = tuple(mft0_content_2dimension_list)
+            self.mft0_content_modified = mft0_content_2dimension_list_mutable.copy()
+
             # 为了确保表格显示美观不拥挤，在表格表头和内容均填充完后重新设置列宽度为内容宽度
-            self.tableWidget_moneytary_fund_t0.resizeColumnsToContents()
+            self.tableWidget_monetary_fund_t0.resizeColumnsToContents()
         except Exception as e:
             error_msg = '解析文件内容出错！%s' % e
             log.error(error_msg)
@@ -379,8 +431,8 @@ class AppWindow(QMainWindow):
         self.lineEdit_t0_file_receiver.setText(_basename.split('_')[5])
 
     def browse_open_fund_business_data_exchange_file(self):
-        _file_info = QFileDialog.getOpenFileName(self.tab_open_fund_data, '打开文件',
-                                                 os.path.expanduser('~'), '信息交换数据文件(OFD*.TXT; OFI*.TXT)')
+        _file_info = QFileDialog.getOpenFileName(self.tab_open_fund_data, '打开文件', os.path.expanduser('~'),
+                                                 '信息交换数据文件(OFD*.TXT; OFI*.TXT)')
         _filename = _file_info[0]
         log.info('filename -> %s' % _filename)
         if '' == _filename.strip():
@@ -388,11 +440,14 @@ class AppWindow(QMainWindow):
             return
         self.show_open_fund_biz_data(_filename)
 
+        # 清空状态条信息
+        self.statusbar.clearMessage()
+
     def show_open_fund_biz_data(self, _filename):
         self.lineEdit_interface_file_path.setText(_filename)
         # ----------- 读取 -----------
         try:
-            file_input_stream = open(_filename, 'rt', encoding=INFO_CONTENT_ENCODING)
+            file_input_stream = open(_filename, 'rt', encoding=GB18030_ENCODING)
             content = file_input_stream.read().strip()
 
             # 前10行均为固定的消息头部信息
@@ -413,7 +468,7 @@ class AppWindow(QMainWindow):
             # log.debug('_file_end_flag -> %s' % _file_end_flag)
 
             FILE_CONTENT_BEGIN_FLAG = 'OFDCFDAT'
-            info_header_pre_section_dict = {} # 前10行
+            info_header_pre_section_dict = {}  # 前10行
             info_header_middle_section_field_list = []
             # info_header_last_section_record_count = 0
             info_content_record_list = []
@@ -482,6 +537,9 @@ class AppWindow(QMainWindow):
         self.exchange_info_fields = info_header_middle_section_field_list
         self.exchange_info_content = info_content_record_list
 
+        # 补上手工添加的首列——真实行号
+        self.exchange_info_fields = self.insert_real_no_field_to_head(self.exchange_info_fields)
+
         _file_flag_type_key = self.exchange_info_header[INFO_HEADER_PRE_SECTION_LIST[6]]
         if _file_flag_type_key in self.ofd_config_map.keys():
             log.info('找到当前key=%s的配置信息' % _file_flag_type_key)
@@ -490,21 +548,35 @@ class AppWindow(QMainWindow):
             return
 
         exchange_info_content_2dimension_list = []
+        exchange_info_content_2dimension_list_mutable = []
         # 将数据解析成二维元组，供后续搜索功能使用
-        field_len_list, field_len_precision_list = self.get_field_len_list(_file_flag_type_key)
-        for row_no in range(len(self.exchange_info_content)):
-            record = self.exchange_info_content[row_no]
-            field_values = self.parse_recod(field_len_list, field_len_precision_list, record)
+        field_length_list, field_length_precision_list = self.get_field_len_list(_file_flag_type_key)
+        for row_no, record in enumerate(self.exchange_info_content):
+            field_values = self.parse_record(field_length_list, field_length_precision_list, record)
+            # 添加行号到头部，用于标识当前行位于文件中的真实行号，但展示列表时可将该列隐藏
+            field_values.insert(0, str(row_no + 1))
             exchange_info_content_2dimension_list.append(tuple(field_values))
+            exchange_info_content_2dimension_list_mutable.append(field_values)
 
         self.exchange_info_content_2dimension_tuple = tuple(exchange_info_content_2dimension_list)
         # log.info('数据二维元组exchange_info_content_2dimension_tuple：%s' % self.exchange_info_content_2dimension_tuple)
+        # 复制一份数据列表，供后续更改导出用
+        self.exchange_info_content_modified = exchange_info_content_2dimension_list_mutable.copy()
 
         # ----------- 展示 -----------
         # 展示头部信息
         self.render_header_info(_file_flag_type_key, _filename, INFO_HEADER_PRE_SECTION_LIST)
         # 展示表格数据部分
         self.render_table(_file_flag_type_key)
+
+    def insert_real_no_field_to_head(self, fields):
+        """
+        用于把真实行号列添加到表头作为首列 // 可重用
+        :param fields:
+        :return:
+        """
+        fields.insert(0, '#真实行号')
+        return fields
 
     # 获得当前文件定义的各字段长度列表
     def get_field_len_list(self, _config_key):
@@ -522,24 +594,26 @@ class AppWindow(QMainWindow):
         return field_len_list, field_len_precision_list
 
     def render_table(self, _config_key):
-        self.tableWidget.clearContents()
-        self.tableWidget.setAlternatingRowColors(True)  # 设置隔行变色
-        self.tableWidget.setColumnCount(len(self.exchange_info_fields))
-
-        # TODO 获得当前文件定义的表头
+        # 获得当前文件定义的表头
         header_labels = []
         for field_info_as_list in self.ofd_config_map[_config_key]:
             field_description = field_info_as_list[OFD_FIELD_DESCRIPTION_INDEX]
             header_labels.append(field_description)
 
-        self.tableWidget.setHorizontalHeaderLabels(header_labels)
-        self.tableWidget.setRowCount(len(self.exchange_info_content))
-        field_len_list, field_len_precision_list = self.get_field_len_list(_config_key)
+        # 补上手工添加的首列——真实行号
+        header_labels = self.insert_real_no_field_to_head(header_labels)
+
+        self.setup_table_widget(self.tableWidget, self.exchange_info_content, header_labels, True)
+        # self.tableWidget.hideColumn(0)  # 隐藏首列
+
+        # field_len_list, field_len_precision_list = self.get_field_len_list(_config_key)
         log.info('配置文件key -> %s' % _config_key)
-        for row_no in range(len(self.exchange_info_content)):
-            record = self.exchange_info_content[row_no]
-            record_values = self.parse_recod(field_len_list, field_len_precision_list, record)
-            self.render_table_row(self.tableWidget, record_values, row_no)
+        for row_no, row in enumerate(self.exchange_info_content_2dimension_tuple):
+            for column_no, item in enumerate(row):
+                table_item = QTableWidgetItem(item)
+                self.tableWidget.setItem(row_no, column_no, table_item)
+                if column_no == __NO_OF_REAL_ROW_NO_COLUMN__:
+                    table_item.setFlags(Qt.NoItemFlags)
         # 为了确保表格显示美观不拥挤，在表格表头和内容均填充完后重新设置列宽度为内容宽度
         self.tableWidget.resizeColumnsToContents()
 
@@ -551,8 +625,7 @@ class AppWindow(QMainWindow):
         :param row_no:
         :return:
         """
-        for column_no in range(len(record_values)):
-            cell = record_values[column_no]
+        for column_no, cell in enumerate(record_values):
             if cell is None:
                 cell = ''
             table_item = QTableWidgetItem(str(cell))
@@ -571,23 +644,22 @@ class AppWindow(QMainWindow):
         self.comboBox_interface_version.addItems([self.tr(self.exchange_info_header[info_header_pre_section_list[1]])])
         self.lineEdit_file_type.setText(_file_type)
 
-    def parse_recod(self, field_len_list, field_len_precision_list, record):
+    def parse_record(self, field_len_list, field_len_precision_list, record):
         """
         根据配置信息按固定长度解析内容，包含小数精度的数值将被解析成实际有意义的数字
         :param field_len_list: 字段长度
         :param field_len_precision_list: 字段数值精度（仅当字段为数值类型时才有效）
         :param record: 
-        :return: 
+        :return: 单行内容解析后得到的字段值列表
         """
         _start = 0
         _end = 0
         record_values = []
         # 由于信息体中的汉字是GB18030编码，故需要转换成字节后再按索引范围取值
-        record_bytes = str.encode(record, INFO_CONTENT_ENCODING)
-        for index in range(len(field_len_list)):
-            field_len = field_len_list[index]
+        record_bytes = str.encode(record, GB18030_ENCODING)
+        for index, field_len in enumerate(field_len_list):
             _end = _start + field_len
-            _record_value = bytes.decode(record_bytes[_start: _end], INFO_CONTENT_ENCODING).strip()
+            _record_value = bytes.decode(record_bytes[_start: _end], GB18030_ENCODING).strip()
             _start = _end
             # log.debug('参数%d的值为: %s' % (index, _record_value))
             _record_value = self.fix_value_if_numeric_type(_record_value, field_len_precision_list, index)
@@ -595,7 +667,7 @@ class AppWindow(QMainWindow):
         # log.debug('解析后的参数值 -> %s' % record_values)
         return record_values
 
-    # TODO 将包含给定精度的数值进行转换
+    # 将包含给定精度的数值进行转换
     def fix_value_if_numeric_type(self, _record_value, field_len_precision_list, index):
         fixed_record_value = _record_value
         if field_len_precision_list[index] > 0:  # TODO 还应该加上字段类型为数值的判断条件！
@@ -613,6 +685,32 @@ class AppWindow(QMainWindow):
             else:  # 含有小数，必须显示小数部分
                 fixed_record_value = str(tmp)
         return fixed_record_value
+
+    def disable_in_developing_functions(self):
+        self.button_export.setDisabled(True)
+        self.checkBox_remove_blank.setDisabled(True)
+        # self.lineEdit_search_monetary.setDisabled(True)
+        # self.button_search_monetary.setDisabled(True)
+        self.checkBox_remove_blank_monetary.setDisabled(True)
+        # self.button_restore_monetary.setDisabled(True)
+        self.button_export_monetary.setDisabled(True)
+        self.tab_ysstech_data.setDisabled(True)
+
+    def handle_drop_action(self):
+        log.info('Drop action emit!!!!!!!')
+
+    def dragEnterEvent(self, dragEnterEvent):
+        if dragEnterEvent.mimeData().hasUrls():
+            dragEnterEvent.accept()
+        else:
+            dragEnterEvent.ignore()
+
+    def dropEvent(self, dropEvent):
+        for url in dropEvent.mimeData().urls():
+            path = url.toLocalFile()
+            if os.path.isfile(path) and path.endswith(('.txt', '.TXT')):
+                log.info(path)
+                self.show_open_fund_biz_data(path)
 
 
 def main():

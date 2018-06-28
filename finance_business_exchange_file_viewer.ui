@@ -242,7 +242,7 @@
          </layout>
         </item>
         <item>
-         <widget class="QTableWidget" name="tableWidget_moneytary_fund_t0"/>
+         <widget class="QTableWidget" name="tableWidget_monetary_fund_t0"/>
         </item>
        </layout>
       </widget>
@@ -366,7 +366,7 @@
   <tabstop>tableWidget</tabstop>
   <tabstop>lineedit_monetary_fund_t0_file_path</tabstop>
   <tabstop>button_browse_monetary_fund_t0_file</tabstop>
-  <tabstop>tableWidget_moneytary_fund_t0</tabstop>
+  <tabstop>tableWidget_monetary_fund_t0</tabstop>
   <tabstop>lineEdit</tabstop>
   <tabstop>pushButton</tabstop>
   <tabstop>comboBox</tabstop>
