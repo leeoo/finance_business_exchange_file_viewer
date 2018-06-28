@@ -4,7 +4,7 @@ block_cipher = None
 
 
 a = Analysis(['finance_business_exchange_file_viewer.py'],
-             pathex=['/Users/libo/workshop/Python/finance_business_exchange_file_viewer'],
+             pathex=['G:\\workshop\\Python\\finance_business_exchange_file_viewer\\config', 'G:\\workshop\\Python\\finance_business_exchange_file_viewer'],
              binaries=[],
              datas=[('finance_business_exchange_file_viewer.ui', '.'), ('config/', 'config/')],
              hiddenimports=[],
@@ -31,13 +31,3 @@ coll = COLLECT(exe,
                strip=False,
                upx=True,
                name='finance_business_exchange_file_viewer')
-app = BUNDLE(coll,
-             name='finance_business_exchange_file_viewer.app',
-             icon=None,
-             bundle_identifier=None,
-             info_plist={
-                 'NSPrincipalClass': 'NSApplication',
-                 'NSHighResolutionCapable': 'True',
-                 'LSBackgroundOnly': '0'
-             }
-      )

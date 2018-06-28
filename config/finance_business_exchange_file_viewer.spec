@@ -4,7 +4,7 @@ block_cipher = None
 
 
 a = Analysis(['finance_business_exchange_file_viewer.py'],
-             pathex=['/Users/libo/workshop/Python/finance_business_exchange_file_viewer'],
+             pathex=['/Users/lex/workshop/Python/finance_business_exchange_file_viewer'],
              binaries=[],
              datas=[('finance_business_exchange_file_viewer.ui', '.'), ('config/', 'config/')],
              hiddenimports=[],

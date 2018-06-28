@@ -1,0 +1,9 @@
+# PyCharm
+.idea
+.iml
+build
+dist
+*.log
+
+
+__pycache__
