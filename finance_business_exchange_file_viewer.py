@@ -17,8 +17,8 @@ import sys
 import os.path
 import logging.config
 from configparser import ConfigParser
-from PySide2.QtCore import *
-from PySide2.QtWidgets import *
+from PySide2.QtCore import QFile, Qt, QDate
+from PySide2.QtWidgets import QMainWindow, QMessageBox, QTableWidgetItem, QFileDialog, QApplication
 from PySide2.QtUiTools import QUiLoader
 
 

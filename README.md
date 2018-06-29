@@ -21,10 +21,16 @@ App to view some kinds of finance business exchange files.
 
 ## 常用打包命令
 ### For Linux/MacOS
-pyinstaller -D --windowed --noconfirm --clean --add-data="finance_business_exchange_file_viewer.ui:." --add-data="config/:config/" -p /Users/lex/workshop/Python/finance_business_exchange_file_viewer/config finance_business_exchange_file_viewer.py
+* 文件夹格式
+pyinstaller -D --windowed --noconfirm --clean --add-data="finance_business_exchange_file_viewer.ui:." --hidden-import PySide2.QtXml --add-data="config/:config/" -p /Users/lex/workshop/Python/finance_business_exchange_file_viewer/config finance_business_exchange_file_viewer.py
+* 单文件格式
+pyinstaller -F --windowed --noconfirm --clean --add-data="finance_business_exchange_file_viewer.ui:." --hidden-import PySide2.QtXml --add-data="config/:config/" -p /Users/lex/workshop/Python/finance_business_exchange_file_viewer/config finance_business_exchange_file_viewer.py
 
 ### For Windows
-pyinstaller -D --windowed --noconfirm --clean --add-data="finance_business_exchange_file_viewer.ui;." --add-data="config/;config/" -p G:\workshop\Python\finance_business_exchange_file_viewer\config finance_business_exchange_file_viewer.py
+* 文件夹格式
+pyinstaller -D --windowed --noconfirm --clean --add-data="finance_business_exchange_file_viewer.ui;." --hidden-import PySide2.QtXml --add-data="config/;config/" -p G:\workshop\Python\finance_business_exchange_file_viewer\config finance_business_exchange_file_viewer.py
+* 单文件格式
+pyinstaller -F --windowed --noconfirm --clean --add-data="finance_business_exchange_file_viewer.ui;." --hidden-import PySide2.QtXml --add-data="config/;config/" -p G:\workshop\Python\finance_business_exchange_file_viewer\config finance_business_exchange_file_viewer.py
 
 注：在MacOS平台打包时，为了支持HDPI高清显示，需要手动在spec文件末尾添加如下配置！
 ```
@@ -43,10 +49,20 @@ app = BUNDLE(coll,
 ## 打包过程中输出包含DEBUG级别的详细日志
 pyinstaller --log-level DEBUG -D --windowed --noconfirm --add-data="finance_business_exchange_file_viewer.ui:." --add-data="config/:config/" -p /Users/lex/workshop/Python/finance_business_exchange_file_viewer/config --windowed --noconfirm finance_business_exchange_file_viewer.py
 
-## 有问题依次检查*.spec文件、操作系统平台、文件执行路径是否包含中文！
+## 有问题依次检查
+1.*.spec文件。
+2.打包完毕后build/<your_app_name>/warn<your_app_name>.txt文件中的构建日志。
+3.操作系统平台。
+4.文件执行路径是否包含中文！
 
 
 已知问题
 ==============
 - app由PyInstaller打包后在Mac上含有中文字符的路径下无法运行
+- 当前PyInstaller的PySide2系列hook不能正常支持含有QUiLoader模块的打包，需要在打包命令中加上` --hidden-import PySide2.QtXml`。
+    - 参考：
+        PyInstaller cannot find QtCompat.loadUi
+        https://github.com/mottosso/Qt.py/issues/290
+        PyInstaller cannot find QtUiTools because of QtXml
+        https://bugreports.qt.io/browse/PYSIDE-681
 
