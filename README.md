@@ -40,7 +40,7 @@ pyinstaller -F --windowed --noconfirm --clean --add-data="finance_business_excha
 ```
 
 注：在MacOS平台打包时，为了支持HDPI高清显示，需要手动在spec文件末尾添加如下配置！
-```
+```Python
 app = BUNDLE(coll,
              name='finance_business_exchange_file_viewer.app',
              icon=None,
@@ -56,10 +56,10 @@ app = BUNDLE(coll,
 ## 打包过程中输出包含DEBUG级别的详细日志
 ```Shell
 pyinstaller --log-level DEBUG -D --windowed --noconfirm --add-data="finance_business_exchange_file_viewer.ui:." --add-data="config/:config/" -p /Users/lex/workshop/Python/finance_business_exchange_file_viewer/config --windowed --noconfirm finance_business_exchange_file_viewer.py
-```Shell
+```
 
 ## 有问题依次检查
-1.*.spec文件。
+1.<your_app_name>.spec文件。
 2.打包完毕后build/<your_app_name>/warn<your_app_name>.txt文件中的构建日志。
 3.操作系统平台。
 4.文件执行路径是否包含中文！
