@@ -9,7 +9,7 @@ TODO
 # ~~ 可导出为Excel文件 ~~
 @author         Lex Li
 @version        1.0
-@description
+@description    用于查看、搜索和导出中登标准的开放式基金业务数据交换文件、货基T+0对账文件和赢时胜金手指文件的内容。
 """
 
 
@@ -18,7 +18,7 @@ import os.path
 import logging.config
 from configparser import ConfigParser
 from PySide2.QtCore import QFile, Qt, QDate
-from PySide2.QtWidgets import QMainWindow, QMessageBox, QTableWidgetItem, QFileDialog, QApplication
+from PySide2.QtWidgets import QApplication, QMainWindow, QMessageBox, QTableWidgetItem, QFileDialog
 from PySide2.QtUiTools import QUiLoader
 
 
